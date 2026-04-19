@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Ownership, Care Deserts, and Medical Debt</title>
+    <style>
+        :root {
+            --ink: #1c2a24;
+            --panel: #f7f8f6;
+            --accent: #4b644a;
+            --muted: #5b6b63;
+            --border: #cad3ce;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background: #fffdf6;
+            line-height: 1.45;
+        }
+
+        header {
+            text-align: center;
+            color: #ffffff;
+            background-color: #4b644a;
+            font-size: 2rem;
+            padding: 0.75rem;
+            margin: 0.75rem 0.75rem 0 0.75rem;
+        }
+
+        nav {
+            text-align: center;
+            color: #4b644a;
+            background-color: #b8c480;
+            padding: 0.8rem;
+            margin: 0 0.75rem 1rem 0.75rem;
+            border: 2px solid #5f7470;
+            font-weight: bold;
+        }
+
+        .nav-button {
+            color: #ffffff;
+            text-decoration: none;
+            margin: 0 0.55rem;
+            padding: 0.35rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .nav-button:hover {
+            background-color: #919b64;
+        }
+
+        main {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem 1rem;
+        }
+
+        .lead {
+            margin: 0 0 0.9rem 0;
+            color: var(--muted);
+        }
+
+        .map-shell {
+            position: relative;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        #map-svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .state {
+            stroke: #ffffff;
+            stroke-width: 1.1px;
+            transition: stroke-width 120ms ease-in-out;
+        }
+
+        .state:hover {
+            stroke: #202020;
+            stroke-width: 1.7px;
+        }
+
+        .pe-circle {
+            fill: rgba(15, 25, 52, 0.26);
+            stroke: #0f1934;
+            stroke-width: 1px;
+            pointer-events: all;
+        }
+
+        .legend-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-top: 0.8rem;
+        }
+
+        .legend-panel {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+            min-width: 255px;
+        }
+
+        .legend-title {
+            margin: 0 0 0.4rem 0;
+            font-weight: bold;
+            font-size: 0.98rem;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: auto repeat(3, 20px);
+            gap: 2px;
+            align-items: center;
+            font-size: 0.78rem;
+        }
+
+        .axis-label {
+            grid-column: 2 / span 3;
+            text-align: center;
+            margin-top: 0.2rem;
+            color: #313a36;
+            font-size: 0.76rem;
+        }
+
+        .axis-label-left {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            margin-right: 0.25rem;
+            color: #313a36;
+            font-size: 0.76rem;
+        }
+
+        .swatch {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .circle-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.32rem 0;
+            font-size: 0.84rem;
+        }
+
+        #tooltip {
+            position: absolute;
+            pointer-events: none;
+            z-index: 9;
+            background: rgba(19, 24, 22, 0.93);
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 0.55rem 0.65rem;
+            font-size: 0.83rem;
+            width: 270px;
+            opacity: 0;
+            transform: translate(-50%, -115%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .notes {
+            margin-top: 0.85rem;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+<header>
+    <span>Hi, I'm Sara!</span>
+</header>
+
+<nav>
+    <a class="nav-button" href="index.html">Home</a>
+    <a class="nav-button" href="work_experience.html">Work Experience</a>
+    <a class="nav-button" href="about_me.html">About Me</a>
+    <a class="nav-button" href="healthcare_map.html">Healthcare Equity Map</a>
+</nav>
+
+<main>
+    <h1>Hospital Ownership, Care Deserts, and Medical Debt</h1>
+    <p class="lead">
+        Bivariate choropleth by state: color = medical debt burden + healthcare desert index, circle size = count of private-equity-owned hospitals.
+    </p>
+
+    <div class="map-shell">
+        <svg id="map-svg" viewBox="0 0 1180 730" aria-label="Bivariate U.S. state map"></svg>
+        <div id="tooltip" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="legend-wrap">
+        <section class="legend-panel">
+            <p class="legend-title">Bivariate legend</p>
+            <div style="display:flex;align-items:center;">
+                <div class="axis-label-left">Healthcare deserts (low → high)</div>
+                <div>
+                    <div class="legend-grid" id="bivariate-grid"></div>
+                    <div class="axis-label">Medical debt (low → high)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="legend-panel">
+            <p class="legend-title">Private-equity-owned hospitals</p>
+            <div id="circle-legend"></div>
+        </section>
+    </div>
+
+    <p class="notes" id="data-timestamp"></p>
+    <p class="notes">
+        Data sources: March of Dimes Maternity Care Deserts + HRSA shortage areas (care deserts), Urban Institute Debt in America (medical debt), and PESP Private Equity Hospital Tracker (ownership).
+    </p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script>
+const BIVARIATE_COLORS = [
+    ["#e8e8e8", "#b8d6be", "#73ae80"],
+    ["#c8b8d6", "#a5add3", "#5698b9"],
+    ["#be64ac", "#8c62aa", "#3b4994"]
+];
+
+const STATE_NAME_BY_FIPS = {
+    "01": "Alabama", "02": "Alaska", "04": "Arizona", "05": "Arkansas", "06": "California",
+    "08": "Colorado", "09": "Connecticut", "10": "Delaware", "11": "District of Columbia",
+    "12": "Florida", "13": "Georgia", "15": "Hawaii", "16": "Idaho", "17": "Illinois",
+    "18": "Indiana", "19": "Iowa", "20": "Kansas", "21": "Kentucky", "22": "Louisiana",
+    "23": "Maine", "24": "Maryland", "25": "Massachusetts", "26": "Michigan", "27": "Minnesota",
+    "28": "Mississippi", "29": "Missouri", "30": "Montana", "31": "Nebraska", "32": "Nevada",
+    "33": "New Hampshire", "34": "New Jersey", "35": "New Mexico", "36": "New York",
+    "37": "North Carolina", "38": "North Dakota", "39": "Ohio", "40": "Oklahoma",
+    "41": "Oregon", "42": "Pennsylvania", "44": "Rhode Island", "45": "South Carolina",
+    "46": "South Dakota", "47": "Tennessee", "48": "Texas", "49": "Utah", "50": "Vermont",
+    "51": "Virginia", "53": "Washington", "54": "West Virginia", "55": "Wisconsin", "56": "Wyoming"
+};
+
+const svg = d3.select("#map-svg");
+const tooltip = d3.select("#tooltip");
+const width = 1180;
+const height = 730;
+
+Promise.all([
+    d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
+    d3.json("data/health_map_states.json")
+]).then(([us, joined]) => {
+    const stateRows = new Map(joined.states.map((row) => [row.state_fips, row]));
+    const states = topojson.feature(us, us.objects.states).features
+        .filter((feature) => stateRows.has(String(feature.id).padStart(2, "0")));
+
+    const projection = d3.geoAlbersUsa().fitSize([width, height], {
+        type: "FeatureCollection",
+        features: states
+    });
+    const path = d3.geoPath(projection);
+    const maxPe = d3.max(joined.states, (d) => d.pe_owned_hospitals) || 1;
+    const circleRadius = d3.scaleSqrt().domain([0, maxPe]).range([0, 24]);
+
+    const mapLayer = svg.append("g");
+    const circleLayer = svg.append("g");
+
+    function fillForRow(row) {
+        if (!row) return "#efefef";
+        const desertBand = Math.max(0, Math.min(2, row.healthcare_desert_bin));
+        const debtBand = Math.max(0, Math.min(2, row.medical_debt_bin));
+        return BIVARIATE_COLORS[desertBand][debtBand];
+    }
+
+    function showTooltip(event, row, stateFips) {
+        const stateName = STATE_NAME_BY_FIPS[stateFips] || row.state_abbr;
+        const html = [
+            "<strong>" + stateName + "</strong>",
+            "Medical debt share: " + d3.format(".1%")(row.medical_debt_share),
+            "Maternity desert county share: " + d3.format(".1%")(row.maternity_desert_county_share),
+            "HRSA primary-care shortage score: " + d3.format(".2f")(row.hrsa_primary_care_hpsa_score),
+            "Healthcare desert index: " + d3.format(".1%")(row.healthcare_desert_index),
+            "PE-owned hospitals: " + row.pe_owned_hospitals
+        ].join("<br>");
+
+        tooltip
+            .style("opacity", 1)
+            .style("left", event.offsetX + "px")
+            .style("top", event.offsetY + "px")
+            .html(html);
+    }
+
+    function hideTooltip() {
+        tooltip.style("opacity", 0);
+    }
+
+    mapLayer
+        .selectAll("path")
+        .data(states)
+        .join("path")
+        .attr("class", "state")
+        .attr("d", path)
+        .attr("fill", (feature) => {
+            const fips = String(feature.id).padStart(2, "0");
+            return fillForRow(stateRows.get(fips));
+        })
+        .on("mousemove", function(event, feature) {
+            const fips = String(feature.id).padStart(2, "0");
+            showTooltip(event, stateRows.get(fips), fips);
+        })
+        .on("mouseout", hideTooltip);
+
+    circleLayer
+        .selectAll("circle")
+        .data(states)
+        .join("circle")
+        .attr("class", "pe-circle")
+        .attr("transform", (feature) => {
+            const centroid = path.centroid(feature);
+            return "translate(" + centroid[0] + "," + centroid[1] + ")";
+        })
+        .attr("r", (feature) => {
+            const fips = String(feature.id).padStart(2, "0");
+            const row = stateRows.get(fips);
+            return circleRadius(row.pe_owned_hospitals);
+        })
+        .on("mousemove", function(event, feature) {
+            const fips = String(feature.id).padStart(2, "0");
+            showTooltip(event, stateRows.get(fips), fips);
+        })
+        .on("mouseout", hideTooltip);
+
+    buildBivariateLegend();
+    buildCircleLegend(circleRadius, maxPe);
+
+    const stamp = joined.generated_at_utc || "N/A";
+    d3.select("#data-timestamp").text("Dataset generated: " + stamp);
+}).catch((error) => {
+    console.error(error);
+    d3.select("#data-timestamp").text("Unable to load map data. Check console for details.");
+});
+
+function buildBivariateLegend() {
+    const legend = d3.select("#bivariate-grid");
+    legend.html("");
+
+    for (let row = 2; row >= 0; row -= 1) {
+        if (row === 2) {
+            legend.append("div").text("High");
+        } else if (row === 1) {
+            legend.append("div").text("Mid");
+        } else {
+            legend.append("div").text("Low");
+        }
+
+        for (let col = 0; col < 3; col += 1) {
+            legend
+                .append("div")
+                .attr("class", "swatch")
+                .style("background", BIVARIATE_COLORS[row][col]);
+        }
+    }
+}
+
+function buildCircleLegend(circleRadius, maxPe) {
+    const legendValues = [Math.round(maxPe * 0.25), Math.round(maxPe * 0.6), maxPe]
+        .filter((d, i, arr) => d > 0 && arr.indexOf(d) === i);
+
+    const container = d3.select("#circle-legend");
+    container.html("");
+
+    legendValues.forEach((value) => {
+        const row = container.append("div").attr("class", "circle-legend-item");
+        const icon = row.append("svg").attr("width", 56).attr("height", 34);
+        icon
+            .append("circle")
+            .attr("cx", 20)
+            .attr("cy", 17)
+            .attr("r", circleRadius(value))
+            .attr("fill", "rgba(15,25,52,0.26)")
+            .attr("stroke", "#0f1934")
+            .attr("stroke-width", 1);
+        row.append("span").text(value + " PE-owned hospitals");
+    });
+}
+</script>
+</body>
+</html>
